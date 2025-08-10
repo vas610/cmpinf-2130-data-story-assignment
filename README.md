@@ -29,6 +29,7 @@ It uses live data from the Western Pennsylvania Regional Data Center (WPRDC) and
 
 ## 🗂️ Repository Structure
 
+```
 .
 ├── streamlit_app.py      # Streamlit application
 ├── requirements.txt      # Python dependencies
@@ -36,6 +37,7 @@ It uses live data from the Western Pennsylvania Regional Data Center (WPRDC) and
 └── data/
     └── data-dictionary.csv      # Data Dictionary of the columns in the dataset
     └── Fatal-Accidental-Overdoses.csv      # Dataset (Offline copy in case the data API doesn't work)
+```
 
 ---
 
