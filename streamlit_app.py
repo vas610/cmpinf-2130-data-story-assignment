@@ -331,9 +331,9 @@ else:
 st.markdown("---")
 
 # -----------------------------
-# Viz 2 & 4 — Substances (Stacked Area) + Drug-Combination Treemap
+# Viz 2 - Substances (Stacked Area) + Drug-Combination Treemap
 # -----------------------------
-st.header("2 & 4) Substance Dynamics — Composition & Co-occurrence")
+st.header("2a & 2b Substance Dynamics — Composition & Co-occurrence")
 left, right = st.columns([3, 2])
 
 with left:
