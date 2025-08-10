@@ -1,4 +1,5 @@
 import os
+import json
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -18,7 +19,8 @@ st.set_page_config(
 # -----------------------------
 # Constants
 # -----------------------------
-WPRDC_URL = (
+DATA_DETAILS_URL = "https://data.wprdc.org/dataset/allegheny-county-fatal-accidental-overdoses"
+DATA_API_URL = (
     "https://data.wprdc.org/api/3/action/datastore_search?"
     "resource_id=1c59b26a-1684-4bfb-92f7-205b947530cf&limit=50000"
 )
@@ -26,27 +28,43 @@ PA_ZIP_GEOJSON = (
     "https://raw.githubusercontent.com/OpenDataDE/State-zip-code-GeoJSON/master/"
     "pa_pennsylvania_zip_codes_geo.min.json"
 )
-
-
 MAPBOX_STYLE = "open-street-map"  # works without a token
-
 ALLEGHENY_CENTER = {"lat": 40.44, "lon": -79.99}
 ALLEGHENY_ZOOM = 9.5  # tighter focus on Allegheny County
 
 # -----------------------------
 # Cached loaders
 # -----------------------------
-@st.cache_data(show_spinner=True)
+@st.cache_data(show_spinner=True, ttl="7days")
 def load_from_api() -> pd.DataFrame:
-    r = requests.get(WPRDC_URL, timeout=60)
-    r.raise_for_status()
-    return pd.DataFrame(r.json()["result"]["records"])
+    try:
+        r = requests.get(DATA_API_URL, timeout=60)
+        r.raise_for_status()
+        return pd.DataFrame(r.json()["result"]["records"])
+    except Exception as e:
+        with st.warning("⚠️ API request failed. Loading data from local CSV file..."):
+            local_csv_path = "data/Fatal-Accidental-Overdoses.csv"
+            if os.path.exists(local_csv_path):
+                return pd.read_csv(local_csv_path)
+            else:
+                st.error("Local CSV file not found. Please ensure the file exists.")
+                raise
 
-@st.cache_data(show_spinner=True)
+@st.cache_data(show_spinner=True, ttl="7days")
 def load_geojson(url: str):
-    r = requests.get(url, timeout=60)
-    r.raise_for_status()
-    return r.json()
+    try:
+        r = requests.get(url, timeout=60)
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        with st.warning("⚠️ GeoJSON request failed. Loading data from local file..."):
+            local_geojson_path = "data/pa_pennsylvania_zip_codes_geo.min.json"
+            if os.path.exists(local_geojson_path):
+                with open(local_geojson_path, "r") as f:
+                    return json.load(f)
+            else:
+                st.error("Local GeoJSON file not found. Please ensure the file exists.")
+                raise
 
 # -----------------------------
 # Cleaning & shaping
@@ -134,7 +152,7 @@ def tidy(df: pd.DataFrame):
         "has_substances": len(od_cols) > 0,
         "has_zip": df["zip_norm"].notna().any(),
         "source": "WPRDC — Allegheny County Fatal Accidental Overdoses",
-        "api_url": WPRDC_URL,
+        "api_url": DATA_API_URL,
     }
     return df.reset_index(drop=True), melted.reset_index(drop=True), meta
 
@@ -154,10 +172,12 @@ df, melted, meta = tidy(df_raw)
 # -----------------------------
 st.title("The Unseen Epidemic")
 st.subheader("Fatal Accidental Overdoses in Allegheny County")
+st.caption("Data Story by Vasanth Madhavan Srinivasa Raghavan - CMPINF 2130 The Art of Data Visualization")
+st.caption(f"Data details: {DATA_DETAILS_URL}")
 st.caption(f"Data: {meta['source']} • Live API: {meta['api_url']}")
 
 # -----------------------------
-# Filters (top of page)
+# Filters
 # -----------------------------
 st.markdown("### Filters")
 fc1, fc2, fc3 = st.columns([2, 2, 3])
@@ -191,18 +211,37 @@ if zip_select and zip_select != "ALL ZIPs":
     melt_mask &= melted["zip_norm"].astype(str) == str(zip_select)
 meltedf = melted[melt_mask].copy()
 
-with st.expander("Narrative (≈500 words)", expanded=True):
+with st.expander("Narrative", expanded=True):
     st.markdown(
         """
-**Introduction & Context.** This interactive data story examines fatal accidental overdoses in Allegheny County over time. We align multiple perspectives—yearly fatalities, substances involved, and geography—to support balanced interpretation and practical action.
+## Introduction & Context
+This interactive data story explores the reality of fatal accidental overdoses in Allegheny County, Pennsylvania — a crisis that has steadily evolved over the past two decades. While numbers alone cannot convey the depth of human loss, the patterns they reveal help us better understand the scale, drivers, and geography of the epidemic. This story blends multiple perspectives like annual fatality trends, substances involved, and geographic concentration into a cohesive view that invites interpretation and action. The goal is not only to document what has happened, but to help spark informed discussions about what can be done.  
 
-**Data, Tools & Construction.** Data come from the Western Pennsylvania Regional Data Center (WPRDC). The app uses Streamlit, Plotly, and Pandas. After ingestion, fields are standardized (year, sex, ZIP) and up to ten substance fields per case are reshaped to a tidy long format. Substances are grouped into interpretable categories (*Fentanyl, Heroin, Cocaine, Alcohol, Other Opioids, Other/Unknown*). Each visualization includes explicit labels and tooltips for transparency.
+Opioid-related overdoses are a national public health emergency, and Allegheny County is no exception. The county, home to Pittsburgh and its surrounding municipalities, has faced a dramatic shift in the substances involved in overdose deaths, from heroin and prescription opioids toward highly potent synthetic opioids such as fentanyl. These changes have made overdoses more lethal and have complicated prevention and treatment strategies. Understanding how this epidemic plays out locally is critical for designing targeted interventions that save lives.  
 
-**Visual roadmap.** (1) *Yearly Fatalities* charts the long-run trajectory with options to view totals and by sex. (2 & 4) *Substance Dynamics* pair a stacked area chart with a treemap of drug combinations to show both composition and co-occurrence. (3) *Geographic Patterning* maps cases by ZIP to support place-based responses.
+---
 
-**Conclusion.** The visuals point to a fentanyl-era epidemic with polysubstance involvement and geographic heterogeneity. Priorities include low-barrier MOUD access, naloxone saturation, and timely public reporting.
-        """
-    )
+## Data, Tools & Approach
+The dataset comes from the Western Pennsylvania Regional Data Center (WPRDC), which compiles official overdose records from the Allegheny County Medical Examiner’s Office. Each record contains the year of death, demographic details such as sex and age, geographic information including ZIP code, and up to ten toxicology results (`combined_od1`–`combined_od10`).  
+
+To build this app, I use **Streamlit** for the interface, **Plotly** for interactive visualizations, and **Pandas** for data wrangling. The data undergoes several preparation steps:  
+- Standardizing the `year`, `sex`, and `ZIP code` fields for consistency.  
+- Reshaping up to ten substance fields per case into a “long” format for easier analysis.  
+- Grouping substances into interpretable categories such as *Fentanyl*, *Heroin*, *Cocaine*, *Alcohol*, *Other Opioids*, and *Other/Unknown*.  
+
+Each visualization is designed for clarity and transparency, with consistent labels, tooltips, and accessible color palettes. This ensures that both general audiences and subject-matter experts can explore the data without ambiguity.  
+
+---
+
+## What You will See
+1. **Yearly Fatalities** – A line chart showing how the number of overdose deaths has changed over time, with options to view the total trend or break it down by sex.  
+2. **Substance Composition Over Time** – A stacked area chart showing how the mix of substances in fatal overdoses has shifted, highlighting the rapid rise of fentanyl.  
+3. **Drug Combinations** – A treemap showing the most common combinations of substances found in toxicology reports, making it easier to see how multiple drugs often contribute to deaths.  
+4. **Geographic Patterns** – A choropleth map of cases by ZIP code, alongside local context, to identify areas where the burden is highest and where interventions could be focused.  
+
+---
+"""
+)
 
 # -----------------------------
 # KPIs
@@ -272,7 +311,7 @@ if series_frames:
         st.plotly_chart(fig1, use_container_width=True)
         st.markdown(
             """
-**Narrative:** The time series shows sustained elevation in recent years. Comparing **Total**, **Male** (blue), and **Female** (red) helps assess differential burden and whether trends move in parallel or diverge across groups.
+            The time series shows sustained elevation in recent years. Comparing **Total**, **Male** (blue), and **Female** (red) helps assess differential burden and whether trends move in parallel or diverge across groups.
             """
         )
     else:
@@ -347,14 +386,14 @@ with right:
 
 st.markdown(
     """
-**Narrative (Substances):** The stacked area shows **composition over time** (fentanyl’s rise). The treemap complements it by surfacing **co-occurrence** patterns (e.g., *Fentanyl + Cocaine*), clarifying that many fatal cases involve multiple drugs.
+    The stacked area shows **composition over time** (fentanyl’s rise). The treemap complements it by surfacing **co-occurrence** patterns (e.g., *Fentanyl + Cocaine*), clarifying that many fatal cases involve multiple drugs.
     """
 )
 
 st.markdown("---")
 
 # -----------------------------
-# Viz 3 — Geography: Mapbox Choropleth (standalone) — zoomed to Allegheny County
+# Viz 3 — Geography: Mapbox Choropleth (standalone)
 # -----------------------------
 st.header("3) Geography — ZIP-Code Choropleth")
 st.subheader("Fatal Accidental Overdoses by ZIP Code")
@@ -389,7 +428,7 @@ if meta["has_zip"]:
             st.plotly_chart(fig3, use_container_width=True)
             st.markdown(
                 """
-**Narrative (Geography):** The choropleth highlights **ZIP-level clustering** of cases, useful for targeting naloxone distribution, outreach, and clinic placement. Interpret descriptively: counts reflect population and recording practices.
+                The choropleth highlights **ZIP-level clustering** of cases, useful for targeting naloxone distribution, outreach, and clinic placement. Interpret descriptively: counts reflect population and recording practices.
                 """
             )
     except Exception as e:
@@ -400,13 +439,15 @@ else:
 st.markdown("---")
 
 # -----------------------------
-# Main Takeaway (red background)
+# Main Takeaway
 # -----------------------------
 st.header("Main Takeaway")
 st.error(
     """
-**Fentanyl-era risk remains high and geographically uneven.** Prioritize sustained treatment access (MOUD), naloxone saturation, drug-checking, and post-overdose outreach, proportionate to local need.
-    """
+    ##### Conclusion
+    * The combined view from these visuals paints a sobering picture: overdose deaths in Allegheny County have risen sharply, driven largely by fentanyl and often involving multiple substances. The crisis is not evenly distributed — certain neighborhoods face a heavier burden, underscoring the need for targeted, place-based strategies.  
+    * The data reinforces the importance of making medications for opioid use disorder widely accessible, saturating communities with naloxone (Naloxone, often known by the brand name Narcan, is a medication used to rapidly reverse the effects of an opioid overdose.), and expanding harm-reduction services. Transparent, timely public health reporting is also critical for adapting strategies as the drug supply and risk environment evolve. While the numbers are stark, they provide a roadmap for action — one rooted in evidence, urgency, and compassion.  
+"""
 )
 
 # -----------------------------
@@ -415,27 +456,40 @@ st.error(
 with st.expander("References (APA)", expanded=False):
     st.markdown(
         """
-Western Pennsylvania Regional Data Center. (n.d.). *Allegheny County fatal accidental overdoses* [Data set]. https://data.wprdc.org/
+## References
+Western Pennsylvania Regional Data Center. (2024). *Fatal accidental overdoses in Allegheny County*. Allegheny County Medical Examiner’s Office. https://data.wprdc.org/dataset/allegheny-county-fatal-accidental-overdoses
 
-Centers for Disease Control and Prevention. (2024). *Provisional drug overdose death counts*. https://www.cdc.gov/nchs/nvss/vsrr/drug-overdose-data.htm
-
-Hedegaard, H., Miniño, A. M., & Warner, M. (2023). *Drug overdose deaths in the United States, 2002–2022* (NCHS Data Brief No. 457). National Center for Health Statistics. https://www.cdc.gov/nchs/products/databriefs/db457.htm
-        """
+Centers for Disease Control and Prevention. (2024). *Understanding the opioid overdose epidemic*. U.S. Department of Health & Human Services. https://www.cdc.gov/opioids/basics/epidemic.html  
+    """
     )
+    with st.expander("Data Dictionary", expanded=False):
+        try:
+            data_dict_path = "data/data-dictionary.csv"
+            if os.path.exists(data_dict_path):
+                data_dict_df = pd.read_csv(data_dict_path)
+                st.dataframe(data_dict_df)
+            else:
+                st.warning("Data dictionary CSV file not found. Please ensure 'data/data-dictionary.csv' exists.")
+        except Exception as e:
+            st.error(f"An error occurred while loading the data dictionary: {e}")
 
 # -----------------------------
-# About & Reproducibility
+# About
 # -----------------------------
-with st.expander("About this App & How to Reproduce"):
+with st.expander("About this App"):
     st.markdown(
         f"""
+- **About**: This app is a starting point for understanding the overdose crisis in Allegheny County. I hope it serves as a useful tool for advocates, policymakers, and anyone seeking to make sense of this complex issue.
 - **Data source:** {meta['source']}  
   Live API endpoint: `{meta['api_url']}`
 - **Tools:** Streamlit (UI), Plotly Express (charts), Pandas (wrangling).
 - **Construction notes:** Years normalized; sex standardized; substances long-formed from `combined_od1..10`; ZIPs extracted as five-digit strings and validated against PA ZCTA GeoJSON.
-- **Map tiles:** Using `choropleth_mapbox` with `"{MAPBOX_STYLE}"` style. Set a Mapbox token via `st.secrets["MAPBOX_TOKEN"]` or env var `MAPBOX_TOKEN` to enable Mapbox-powered styles.
-- **Ethical note:** Visuals emphasize clarity and non-stigmatizing interpretation; maps and treemap are intended to guide proportionate resource allocation.
         """
     )
 
-st.caption("© Vasanth Madhavan Srinivasa Raghavan — Graduate Coursework - The Art of Data Visualization - Data Story. Educational use only; not a substitute for official public health reporting.")
+st.markdown(
+    "<div style='text-align: center;'>"
+    "© Vasanth Madhavan Srinivasa Raghavan — Graduate Coursework - CMPINF 2130 The Art of Data Visualization - Data Story. Educational use only; not a substitute for official public health reporting."
+    "</div>",
+    unsafe_allow_html=True
+)
