@@ -1,0 +1,20 @@
+Column,Type,Label,Description
+death_date_and_time,timestamp,,Death date and time for morgue autopsy case.
+manner_of_death,text,,Manner of death for morgue autopsy case determined by the case pathologist.
+age,int4,,Age of Decedent for the morgue autopsy case.
+sex,text,,Sex of Decedent for the morgue autopsy case.
+race,text,,Race of Decedent for the morgue autopsy case.
+case_dispo,text,Case Disposition,Jurisdiction of case as a morgue autopsy case.
+combined_od1,text,,Chemical name of Drug found as cause of death in combined Overdose. In alphabetical order by drug name.
+combined_od2,text,,Chemical name of Drug found as cause of death in combined Overdose. In alphabetical order by drug name.
+combined_od3,text,,Chemical name of Drug found as cause of death in combined Overdose. In alphabetical order by drug name.
+combined_od4,text,,Chemical name of Drug found as cause of death in combined Overdose. In alphabetical order by drug name.
+combined_od5,text,,Chemical name of Drug found as cause of death in combined Overdose. In alphabetical order by drug name.
+combined_od6,text,,Chemical name of Drug found as cause of death in combined Overdose. In alphabetical order by drug name.
+combined_od7,text,,Chemical name of Drug found as cause of death in combined Overdose. In alphabetical order by drug name.
+combined_od8,text,,Chemical name of Drug found as cause of death in combined Overdose. In alphabetical order by drug name.
+combined_od9,text,,Chemical name of Drug found as cause of death in combined Overdose. In alphabetical order by drug name.
+combined_od10,text,,Chemical name of Drug found as cause of death in combined Overdose. In alphabetical order by drug name.
+incident_zip,text,,Zip Code for where the medical examiner's office receives the body
+decedent_zip,text,,Zip Code for the decedent's address. (This value is no longer available from the data source.)
+case_year,int4,,Medical Examiner Case Year
