@@ -19,18 +19,23 @@ st.set_page_config(
 # -----------------------------
 # Constants
 # -----------------------------
+ALLEGHENY_CENTER = {"lat": 40.44, "lon": -79.99}
+ALLEGHENY_ZOOM = 9.5  # tighter focus on Allegheny County
+
 DATA_DETAILS_URL = "https://data.wprdc.org/dataset/allegheny-county-fatal-accidental-overdoses"
 DATA_API_URL = (
     "https://data.wprdc.org/api/3/action/datastore_search?"
     "resource_id=1c59b26a-1684-4bfb-92f7-205b947530cf&limit=50000"
 )
+
+MAPBOX_STYLE = "open-street-map"  # works without a token
+
 PA_ZIP_GEOJSON = (
     "https://raw.githubusercontent.com/OpenDataDE/State-zip-code-GeoJSON/master/"
     "pa_pennsylvania_zip_codes_geo.min.json"
 )
-MAPBOX_STYLE = "open-street-map"  # works without a token
-ALLEGHENY_CENTER = {"lat": 40.44, "lon": -79.99}
-ALLEGHENY_ZOOM = 9.5  # tighter focus on Allegheny County
+
+SOURCE_CODE_GITHUB_URL = "https://github.com/vas610/cmpinf-2130-data-story-assignment"
 
 # -----------------------------
 # Cached loaders
@@ -172,9 +177,13 @@ df, melted, meta = tidy(df_raw)
 # -----------------------------
 st.title("The Unseen Epidemic")
 st.subheader("Fatal Accidental Overdoses in Allegheny County")
+st.markdown("---")
 st.caption("Data Story by Vasanth Madhavan Srinivasa Raghavan - CMPINF 2130 The Art of Data Visualization")
 st.caption(f"Data details: {DATA_DETAILS_URL}")
 st.caption(f"Data: {meta['source']} • Live API: {meta['api_url']}")
+st.markdown("---")
+st.caption(f"GitHub URL for this app's source code: {SOURCE_CODE_GITHUB_URL}")
+st.markdown("---")
 
 # -----------------------------
 # Filters
