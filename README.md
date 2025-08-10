@@ -63,7 +63,7 @@ pip install -r requirements.txt
 ## 🚀 Running the App
 
 ```bash
-streamlit run app.py --server.address 0.0.0.0 --server.port 8000
+streamlit run streamlit_app.py --server.address 0.0.0.0 --server.port 8000
 ```
 
 ---
