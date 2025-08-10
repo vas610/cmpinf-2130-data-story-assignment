@@ -67,6 +67,7 @@ streamlit run app.py --server.address 0.0.0.0 --server.port 8000
 ```
 
 ---
+
 🧭 How to Use
 1. Set filters at the top: choose a year range, sex groups, and optionally a single ZIP (or “ALL ZIPs”).
 2. Read KPIs for a quick summary (records, year span, active filters).
@@ -79,7 +80,11 @@ streamlit run app.py --server.address 0.0.0.0 --server.port 8000
 5. References and About sections document methods and sources.
 
 ---
+## 📺 Live App Hosted on Streamlit Cloud
 
+🖱️ [Streamlit App](https://cmpinf-2130-data-story-assignment-etbn5mfl6kcpdsiyvwf7h3.streamlit.app)
+
+---
 ## 📝 License
 Apache-2.0 license
 
